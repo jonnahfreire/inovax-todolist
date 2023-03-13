@@ -1,11 +1,12 @@
-import { useContext } from 'react';
+import { useContext, useRef, useState } from 'react';
 import tw from 'tailwind-styled-components';
 
 import { EmptyTasksInfo } from './Task/EmptyTasksInfo';
 
 import { TasksInfo } from './Task/TasksInfo';
 import { Task } from './Task/Task';
-import { TaskContext } from '../contexts/TaskContext';
+import { TaskContext, TaskProps } from '../contexts/TaskContext';
+import { ToastDialog } from './utils/Utilities';
 
 const Wrapper = tw.div`
   flex flex-1
@@ -44,28 +45,69 @@ const Button = tw.button`
     bg-[#1B1D37]
     hover:bg-[#1B1D37]/[0.9] 
     hover:ease-in duration-200
-`
+    `
 
 
 export const MainStack = () => {
     const taskContext = useContext(TaskContext);
-    const { tasksDone, tasksTodo, tasks } = taskContext;
+    const { tasksDone, tasksTodo, tasks, createTask } = taskContext;
+    const [text, setText] = useState<string>('');
+    const [created, setCreated] = useState(false);
+
+    const timerRef = useRef(0);
+
+    function handleChangeToast() {
+        setCreated(!created)
+
+        timerRef.current = window.setTimeout(() => {
+            setCreated(false)
+        }, 100);
+
+        return () => clearTimeout(timerRef.current);
+    }
+
+    function save(task: TaskProps): void {
+        taskContext.editTask(task)
+    }
+
+    function _delete(id: string): void {
+        taskContext.deleteTask(id)
+    }
+
+    function create() {
+        if (!text) return;
+
+        createTask(text);
+        setCreated(true);
+        setText("");
+    }
 
     return (
         <Wrapper>
-            
             <Content>
                 <InputContainer>
-                    <Input placeholder='Descreva a tarefa aqui' />
-                    <Button>Criar tarefa</Button>
+                    <Input
+                        value={text}
+                        placeholder='Descreva a tarefa aqui'
+                        onChange={(e) => setText(e.target.value)}
+                    />
+                    <Button onClick={create}>Criar tarefa</Button>
                 </InputContainer>
 
-                <TasksInfo todo={tasksTodo} done={tasksDone} total={tasks.length}/>
+                <TasksInfo todo={tasksTodo} done={tasksDone} total={tasks.length} />
 
                 {!tasks?.length && <EmptyTasksInfo />}
                 {tasks?.map(task =>
-                    <Task key={task.id} id={task.id} done={task.done} text={task.text} />
+                    <Task key={task.id} task={task} actions={{ save, delete: _delete }} />
                 )}
+
+                {created &&
+                    <ToastDialog
+                        isOpen={created}
+                        handleOpen={handleChangeToast}
+                        handleClose={handleChangeToast}
+                    />
+                }
             </Content>
         </Wrapper>
     );
