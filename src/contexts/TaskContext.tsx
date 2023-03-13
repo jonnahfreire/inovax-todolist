@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { createContext, useState } from "react";
-import { sCreateTask, sDeleteTask, sEditTask } from "../services/TaskService";
+import { getTasks, sCreateTask, sDeleteTask, sEditTask, sToggleTaskDone } from "../services/TaskService";
 
 export interface TaskProps {
-    id: string,
+    id?: string,
     done: boolean,
     text: string
 }
@@ -13,49 +13,36 @@ interface TaskContextData {
     tasksDone: number,
     tasksTodo: number,
     createTask: (text: string) => void,
-    toggleDone: (id: string) => void,
     editTask: (task: TaskProps) => void
-    deleteTask: (id: string) => void
+    deleteTask: (id: string) => void,
+    getAllTasks: () => void
 }
 
 export const TaskContext = createContext<TaskContextData>({} as TaskContextData);
 
 export const TasksProvider = ({ children }: any) => {
-    const [tasks, setTasks] = useState<TaskProps[]>([
-        {
-            id: "0",
-            done: true,
-            text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s"
-        },
-        {
-            id: "1",
-            done: false,
-            text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s"
-        },
-    ])
+    const [tasks, setTasks] = useState<TaskProps[]>([])
 
     const tasksDone = tasks.filter(t => t.done).length
     const tasksTodo = tasks.length - tasksDone
 
-    useEffect(() => {}, [])
+    useEffect(() => {
+        getAllTasks()
+    }, [tasks])
 
     function createTask(text: string): void {
-        sCreateTask(text)
+        sCreateTask({ text, done: false })
+        getAllTasks()
     }
 
-    function toggleDone(id: string): void {
-        const taskList = tasks.map(t => {
-            if(t.id === id) {
-                t.done = !t.done
-            }
-            return t
-        })
-        
-        setTasks(taskList)
+    async function getAllTasks() {
+        const response = await getTasks()
+        setTasks(response)
     }
 
     function editTask(task: TaskProps): void {
         sEditTask(task)
+        getAllTasks()
     }
 
     function deleteTask(id: string): void {
@@ -67,10 +54,10 @@ export const TasksProvider = ({ children }: any) => {
         tasksDone,
         tasksTodo,
         createTask,
-        toggleDone,
         editTask,
         deleteTask,
+        getAllTasks
     }}>
-        { children }
+        {children}
     </TaskContext.Provider>
 }
