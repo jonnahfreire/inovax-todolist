@@ -6,8 +6,9 @@ import Edit from '../../assets/NotePencil.png'
 import Cancel from '../../assets/close.png'
 import Save from '../../assets/save.png'
 
-import { TaskContext, TaskProps } from '../../contexts/TaskContext';
-import { MutableRefObject, useContext, useRef, useState } from 'react';
+import { TaskProps } from '../../contexts/TaskContext';
+import { useState } from 'react';
+import { DeletionAlert } from '../utils/Utilities';
 
 
 const TaskWrapper = tw.div`
@@ -64,14 +65,16 @@ const ActionEdit = tw(Actions)`
     rounded-br
 `
 
-const EditableField = tw.input`
+const EditableField = tw.textarea`
     bg-[#1B1D37] 
-    h-full
+    min-h-full
     w-full
     border-0
     outline-0
     text-white text-[.8rem] font-bold
     resize-none
+    scrollbar-hide
+    m-1
 `
 
 interface ActionButtonProps {
@@ -84,75 +87,85 @@ interface ActionButtonProps {
 const ActionButton = (actions: ActionButtonProps) => {
     return (
         <button className='outline-0' onClick={actions.click}>
-            <img src={actions.source} alt='action-button' width={actions.w} height={actions.h}/>
+            <img src={actions.source} alt='action-button' width={actions.w} height={actions.h} />
         </button>
     )
 }
 
-export const Task = ({ id, done, text }: TaskProps) => {
-    const taskContext = useContext(TaskContext)
+export interface TaskAttr {
+    task: TaskProps,
+    actions: {
+        save: (task: TaskProps) => void,
+        delete: (id: string) => void
+    }
+}
 
-    const [ isEditing, setIsEditing ] = useState(false)
-    const [ edited, setEditedValue ] = useState(text)
+export const Task = ({ task, actions }: TaskAttr) => {
+    const [edited, setEditedValue] = useState(task.text)
+    const [isEditing, setIsEditing] = useState(false)
+
+
+    function handleEditValue(event: React.ChangeEvent<HTMLTextAreaElement>) {
+        setEditedValue(event.target.value)
+    }
 
     function handleToggleDone() {
         isEditing && setIsEditing(false)
-        taskContext.toggleDone(id)
+        toggleDone()
     }
 
     function handleEdit() {
-        done && taskContext.toggleDone(id)
         !isEditing && setIsEditing(true)
-    }
-
-    function handleDeleteTask() {
-        // done && taskContext.toggleDone(id)
-        // !isEditing && setIsEditing(true)
+        task.done && toggleDone()
     }
 
     function handleCancelEdit() {
         setIsEditing(false)
     }
 
-    function handleSaveEdited() {
-        const editedTask = {id, done, text: edited}
-        taskContext.editTask(editedTask)
-        setIsEditing(false)        
+    function toggleDone() {
+        actions.save({ ...task, done: !task.done })
     }
 
-    function handleEditValue(event: React.ChangeEvent<HTMLInputElement>) {
-        setEditedValue(event.target.value)
+    function handleSaveEdited() {
+        const editedTask = { ...task, text: edited }
+        actions.save(editedTask)
+        setIsEditing(false)
+    }
+
+    function handleDelete() {
+        actions.delete(task.id!)
     }
 
     return (
         <TaskWrapper>
             <CheckBoxWrapper>
-                <CheckBox onChange={handleToggleDone} checked={done ? true : false} />
+                <CheckBox onChange={handleToggleDone} checked={task.done} />
             </CheckBoxWrapper>
             <TaskTextWrapper >
                 {!isEditing &&
-                    <TaskText className={`${done && "line-through text-[#636AC7]"}`}>{text}</TaskText>
+                    <TaskText className={`${task.done && "line-through text-[#636AC7]"}`}>{task.text}</TaskText>
                 }
 
-                {isEditing && <EditableField value={edited} onChange={handleEditValue} /> }
+                {isEditing && <EditableField value={edited} onChange={handleEditValue} />}
             </TaskTextWrapper>
             <ActionsWrapper>
                 <ActionDelete className={`${isEditing && 'py-3'}`}>
-                    {!isEditing && 
-                        <ActionButton source={Delete} w={20} h={20} click={handleDeleteTask}/>
+                    {!isEditing &&
+                        <DeletionAlert onDeleteTask={() => handleDelete()} />
                     }
 
-                    {isEditing && 
-                        <ActionButton source={Cancel} w={12} h={10} click={handleCancelEdit}/>
+                    {isEditing &&
+                        <ActionButton source={Cancel} w={12} h={10} click={handleCancelEdit} />
                     }
                 </ActionDelete>
                 <ActionEdit className={`${isEditing && 'py-3'}`}>
-                    {!isEditing && 
-                        <ActionButton source={Edit} w={20} h={20} click={handleEdit}/>
+                    {!isEditing &&
+                        <ActionButton source={Edit} w={20} h={20} click={handleEdit} />
                     }
 
-                    {isEditing && 
-                        <ActionButton source={Save} w={15} h={12} click={handleSaveEdited}/>
+                    {isEditing &&
+                        <ActionButton source={Save} w={15} h={12} click={handleSaveEdited} />
                     }
                 </ActionEdit>
             </ActionsWrapper>
