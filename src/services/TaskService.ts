@@ -1,6 +1,6 @@
 import { TaskProps } from "../contexts/TaskContext";
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || "https://worrisome-toga-deer.cyclic.app";
 
 export async function getTasks(): Promise<TaskProps[]> {
     const response = await fetch(`${API}/tasks`, {
