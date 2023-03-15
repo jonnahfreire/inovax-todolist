@@ -47,6 +47,7 @@ export const TasksProvider = ({ children }: any) => {
 
     function deleteTask(id: string): void {
         sDeleteTask(id)
+        getAllTasks()
     }
 
     return <TaskContext.Provider value={{
